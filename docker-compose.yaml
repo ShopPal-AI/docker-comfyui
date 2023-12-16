@@ -5,11 +5,11 @@ services:
     build:
       context: ./build
       args:
-        IMAGE_BASE: ${IMAGE_BASE:-ghcr.io/ai-dock/jupyter-pytorch:2.1.1-py3.10-cuda-11.8.0-base-22.04}
+        IMAGE_BASE: ${IMAGE_BASE:-ghcr.io/ai-dock/jupyter-pytorch:latest-cuda}
       tags:
-        - "ghcr.io/ai-dock/comfyui:${IMAGE_TAG:-jupyter-pytorch-2.1.1-py3.10-cuda-11.8.0-base-22.04}"
+        - "ghcr.io/ai-dock/comfyui:${IMAGE_TAG:-latest-jupyter}"
         
-    image: ghcr.io/ai-dock/comfyui:${IMAGE_TAG:-jupyter-pytorch-2.1.1-py3.10-cuda-11.8.0-base-22.04}
+    image: ghcr.io/ai-dock/comfyui:${IMAGE_TAG:-latest-jupyter}
     
     ## For Nvidia GPU's - You probably want to uncomment this
     #deploy:
@@ -48,7 +48,7 @@ services:
       - /etc/group:/etc/group:ro
       - ./config/rclone:/etc/rclone
       ## Workspace
-      - ./workspace:${WORKSPACE:-/workspace/}:rshared
+      - ${WORKSPACE_HOST:-./workspace}:${WORKSPACE:-/workspace/}:rshared
       # You can share /workspace/storage with other non-ComfyUI containers. See README
       #- /path/to/common_storage:${WORKSPACE:-/workspace/}storage/:rshared
       
@@ -67,13 +67,14 @@ services:
         - ${JUPYTER_PORT_HOST:-8888}:${JUPYTER_PORT_HOST:-8888}
         # Rclone webserver for interactive configuration
         - ${RCLONE_PORT_HOST:-53682}:${RCLONE_PORT_HOST:-53682}
-   
+    env_file: app.env
     environment:
         # Don't enclose values in quotes
         - DIRECT_ADDRESS=${DIRECT_ADDRESS:-127.0.0.1}
         - DIRECT_ADDRESS_GET_WAN=${DIRECT_ADDRESS_GET_WAN:-false}
         - WORKSPACE=${WORKSPACE:-/workspace}
-        - WORKSPACE_SYNC=${WORKSPACE_SYNC:-false}
+        - WORKSPACE_HOST=${WORKSPACE_HOST:-./workspace}
+        - WORKSPACE_SYNC=${WORKSPACE_SYNC:-true}
         - CF_TUNNEL_TOKEN=${CF_TUNNEL_TOKEN:-}
         - CF_QUICK_TUNNELS=${CF_QUICK_TUNNELS:-true}
         - WEB_ENABLE_AUTH=${WEB_ENABLE_AUTH:-true}
@@ -92,3 +93,10 @@ services:
         - JUPYTER_PORT_LOCAL=${JUPYTER_PORT_LOCAL:-18888}
         - JUPYTER_METRICS_PORT=${JUPYTER_METRICS_PORT:-28888}
         - SERVERLESS=${SERVERLESS:-false}
+        - PROVISIONING_SCRIPT=${PROVISIONING_SCRIPT:-}
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            capabilities: [gpu]
